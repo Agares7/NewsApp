@@ -6,6 +6,7 @@ import 'homepage.dart';
 
 class DetailPage extends StatefulWidget {
   final Article article;
+  
 
   const DetailPage({required this.article});
 

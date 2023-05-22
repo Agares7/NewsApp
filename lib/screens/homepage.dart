@@ -12,18 +12,22 @@ class NewsHomePage extends StatefulWidget {
 class _NewsHomePageState extends State<NewsHomePage> {
   String appBarTitle = 'News App';
   late List<Article> articles;
+  late List<Article> filteredArticles;
   late String selectedCategory;
+  TextEditingController searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     articles = [];
+    filteredArticles = [];
     selectedCategory = 'general';
     fetchNews(selectedCategory);
   }
 
   void dispose() {
     super.dispose();
+    searchController.dispose();
   }
 
   Future<void> fetchNews(String category) async {
@@ -44,11 +48,21 @@ class _NewsHomePageState extends State<NewsHomePage> {
             .where(
                 (article) => article.imageUrl != null && article.imageUrl != '')
             .toList());
+        filteredArticles = articles;
       });
     } else {
-// Handle error
+      // Handle error
       print('Failed to fetch news');
     }
+  }
+
+  void filterArticles(String query) {
+    setState(() {
+      filteredArticles = articles
+          .where((article) =>
+              article.title.toLowerCase().contains(query.toLowerCase()))
+          .toList();
+    });
   }
 
   @override
@@ -65,44 +79,64 @@ class _NewsHomePageState extends State<NewsHomePage> {
           fetchNews: fetchNews,
         ),
       ),
-      body: ListView.builder(
-        itemCount: articles.length,
-        itemBuilder: (context, index) {
-          final article = articles[index];
-          return Container(
-            margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-            padding: EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey.shade300),
-              borderRadius: BorderRadius.circular(8),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: TextField(
+              controller: searchController,
+              onChanged: (value) {
+                filterArticles(value);
+              },
+              decoration: InputDecoration(
+                labelText: 'Search',
+                prefixIcon: Icon(Icons.search),
+              ),
             ),
-            child: Column(
-              children: [
-                article.imageUrl != null && article.imageUrl != ''
-                    ? Image.network(
-                        article.imageUrl,
-                        height: 150,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                      )
-                    : Icon(Icons.image_not_supported),
-                SizedBox(height: 8),
-                ListTile(
-                  title: Text(article.title),
-                  subtitle: Text(article.description),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => DetailPage(article: article),
+          ),
+          Expanded(
+            child: ListView.builder(
+              itemCount: filteredArticles.length,
+              itemBuilder: (context, index) {
+                final article = filteredArticles[index];
+                return Container(
+                  margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                  padding: EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey.shade300),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    children: [
+                      article.imageUrl != null && article.imageUrl != ''
+                          ? Image.network(
+                              article.imageUrl,
+                              height: 150,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                            )
+                          : Icon(Icons.image_not_supported),
+                      SizedBox(height: 8),
+                      ListTile(
+                        title: Text(article.title),
+                        subtitle: Text(article.description),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  DetailPage(article: article),
+                            ),
+                          );
+                        },
                       ),
-                    );
-                  },
-                ),
-              ],
+                    ],
+                  ),
+                );
+              },
             ),
-          );
-        },
+          ),
+        ],
       ),
     );
   }
@@ -128,7 +162,7 @@ class Article {
     required this.imageUrl,
     required this.publishedAt,
     required this.content,
-    this.isBookmarked = false
+    this.isBookmarked = false,
   });
 
   factory Article.fromJson(Map<String, dynamic> json) {
